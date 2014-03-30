@@ -35,9 +35,11 @@ Note: This Will Install RXG By Typing "/data/RXG/rxgd -i"
 Usage:
 
 To Uninstall RXG,
+
 Type "/data/RXG/rxgd -u" // ENTER
 
 To Manage RXG
+
 Type "/etc/RXG/rxgx" // ENTER
 
 Changelog:
