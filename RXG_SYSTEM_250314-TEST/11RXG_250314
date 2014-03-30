@@ -1,0 +1,8 @@
+#!/system/etc/RXG/busybox sh
+# RXG 250314 // (c) 2014 RenzkiPH
+
+set +e
+
+### EXECUTE RXG CLIENT
+/system/RXG/busybox start-stop-daemon -o -S -b -x /system/RXG/RXG_CLIENT-250314 &
+

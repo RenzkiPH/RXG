@@ -1,0 +1,48 @@
+#!/system/etc/RXG/busybox sh
+# RXG DNSMASQ // (c) 2014 RenzkiPH
+#
+# Special Thanks To
+# idcrisis/fivefour @ xda
+# zeppelinrox @ xda
+# Exit_Only @ xda
+# pikachu01 @ xda
+# LENAROX @ xda
+
+exec 0>&1
+
+export PATH=/system/etc/RXG:$PATH:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:
+export LD_LIBRARY_PATH=/system/etc/RXG:$LD_LIBRARY_PATH
+
+set +e
+
+alias BUSYBOX='/system/etc/RXG/busybox'
+alias [='BUSYBOX ['
+alias [[='BUSYBOX [['
+
+remount_rxg 2>/dev/null
+
+BUSYBOX rm -rf /data/dnsmasq.pid
+BUSYBOX touch /data/dnsmasq.pid
+
+if [ -e /system/bin/dnsmasq ]; then
+dnsmasq -C /system/etc/dnsmasq.conf -c 65535 -x /data/dnsmasq.pid & 2>/dev/null
+BUSYBOX renice -9 `BUSYBOX pgrep dnsmasq`
+fi
+
+setprop net.change net.dnschange
+setprop net.dns1 127.0.0.1
+setprop net.dns2 8.8.4.4
+setprop net.rmnet0.dns1 127.0.0.1
+setprop net.rmnet0.dns2 8.8.4.4
+setprop net.wlan0.dns1 127.0.0.1
+setprop net.wlan0.dns2 8.8.4.4
+setprop net.wlan0.dns3 8.8.8.8
+setprop net.wlan0.dns4 208.67.222.222
+setprop dhcp.wlan0.dns1 127.0.0.1
+setprop dhcp.wlan0.dns2 8.8.4.4
+setprop dhcp.wlan0.dns3 8.8.8.8
+setprop dhcp.wlan0.dns4 208.67.222.222
+setprop dhcp.eth0.dns1 127.0.0.1
+setprop dhcp.eth0.dns2 8.8.4.4
+setprop dhcp.eth0.dns3 8.8.8.8
+setprop dhcp.eth0.dns4 208.67.222.222

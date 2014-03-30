@@ -1,0 +1,39 @@
+#!/system/etc/RXG/busybox sh
+# RXG CLIENT MANAGER Script For RXG
+# (c) 2014 RenzkiPH
+
+export PATH=/system/etc/RXG:$PATH:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:
+export LD_LIBRARY_PATH=/system/etc/RXG:$LD_LIBRARY_PATH
+
+set +e
+
+alias BUSYBOX='/system/etc/RXG/busybox'
+alias [='BUSYBOX ['
+alias [[='BUSYBOX [['
+
+install() {
+BUSYBOX cp -R /system/etc/RXG/11RXG_250314 /system/etc/init.d/11RXG_250314
+BUSYBOX chmod -R 777 /system/etc/init.d/11RXG_250314
+BUSYBOX chown -R 0:0 /system/etc/init.d/11RXG_250314
+}
+
+remove() {
+BUSYBOX rm -rf /system/etc/init.d/11RXG_250314
+}
+
+case $1 in
+
+install)
+install
+;;
+
+remove)
+remove
+;;
+
+*)
+BUSYBOX echo "Usage: /system/RXG/PROGRAMS/RXG_CLIENT [install|remove]"
+;;
+
+esac
+

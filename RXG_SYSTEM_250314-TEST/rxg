@@ -1,0 +1,84 @@
+#!/system/etc/RXG/busybox sh
+# RXG Main 250314
+# (c) 2014 RenzkiPH
+
+alias BUSYBOX='/system/etc/RXG/busybox'
+alias [='BUSYBOX ['
+alias [[='BUSYBOX [['
+
+if [ "`BUSYBOX whoami`" != "root" ]; then
+   BUSYBOX echo "RXG ERROR: User Not Running As Root"
+   exit 1
+fi 2>/dev/null
+
+export PATH=/system/etc/RXG/PROGRAMS:$PATH:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:
+
+set +e
+
+while true; do
+clear
+BUSYBOX echo "RXG For Android // The Ultimate LAG Killer"
+BUSYBOX echo "Copyright (c) 2014 RenzkiPH @ XDA"
+BUSYBOX echo ""
+BUSYBOX echo "Available Options:"
+BUSYBOX echo "1. Install RXG CLIENT"
+BUSYBOX echo "2. Uninstall RXG CLIENT"
+BUSYBOX echo "3. Install DNSMASQ"
+BUSYBOX echo "4. Uninstall DNSMASQ"
+BUSYBOX echo "5. View RXG Status"
+BUSYBOX echo "6. Exit"
+BUSYBOX echo ""
+BUSYBOX echo -n "Type Selected Option: "
+read rxg
+case $rxg in
+1)
+/system/etc/RXG/PROGRAMS/RXG_CLIENT install
+BUSYBOX echo ""
+BUSYBOX echo "RXG CLIENT Installed"
+BUSYBOX sleep 5
+;;
+2)
+/system/etc/RXG/PROGRAMS/RXG_CLIENT remove
+BUSYBOX echo ""
+BUSYBOX echo "RXG CLIENT Removed"
+BUSYBOX sleep 5
+;;
+3)
+/system/etc/RXG/PROGRAMS/DNSMASQ install
+BUSYBOX echo ""
+BUSYBOX echo "DNSMASQ Installed"
+BUSYBOX sleep 5
+;;
+4)
+/system/etc/RXG/PROGRAMS/DNSMASQ remove
+BUSYBOX echo ""
+BUSYBOX echo "DNSMASQ Removed"
+BUSYBOX sleep 5
+;;
+5)
+BUSYBOX echo ""
+if [ -e /system/etc/init.d/11RXG_250314 ]; then
+BUSYBOX echo "RXG CLIENT Installed"
+else
+BUSYBOX echo "RXG CLIENT Not Installed"
+fi
+BUSYBOX echo ""
+if [ -e /system/etc/init.d/12RXG_DNSMASQ ]; then
+BUSYBOX echo "DNSMASQ Installed"
+else
+BUSYBOX echo "DNSMASQ Not Installed"
+fi
+BUSYBOX echo ""
+BUSYBOX echo "Press Enter To Return At Main Menu"
+read enter
+;;
+6)
+exit 0
+;;
+*)
+BUSYBOX echo ""
+BUSYBOX echo "RXG ERROR: Invalid Option"
+BUSYBOX sleep 5
+;;
+esac
+done

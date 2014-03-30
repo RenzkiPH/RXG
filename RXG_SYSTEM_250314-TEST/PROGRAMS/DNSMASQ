@@ -1,0 +1,97 @@
+#!/system/etc/RXG/busybox sh
+# DNSMASQ Activator/Deactivator Script For RXG
+# (c) 2014 RenzkiPH
+
+export PATH=/system/etc/RXG:$PATH:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:
+export LD_LIBRARY_PATH=/system/etc/RXG:$LD_LIBRARY_PATH
+
+set +e
+
+alias BUSYBOX='/system/etc/RXG/busybox'
+alias [='BUSYBOX ['
+alias [[='BUSYBOX [['
+
+install() {
+if [ -e /system/bin/dnsmasq ]; then
+BUSYBOX pkill /system/bin/dnsmasq 
+BUSYBOX mv -f /system/bin/dnsmasq /system/bin/dnsmasq.RXGBAK
+fi
+
+BUSYBOX rm -rf /data/dnsmasq.pid
+BUSYBOX touch /data/dnsmasq.pid
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/rinetd /system/xbin
+BUSYBOX chmod -f 755 /system/xbin/rinetd
+BUSYBOX chown -f 0.0 /system/xbin/rinetd
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/rinetd.conf /system/etc
+BUSYBOX chmod -f 755 /system/etc/rinetd.conf
+BUSYBOX chown -f 0.0 /system/etc/rinetd.conf
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/dnsmasq-host /data/local/dnsmasq-host
+BUSYBOX chmod -f 755 /data/local/dnsmasq-host
+BUSYBOX chown -f 1000.1000 /data/local/dnsmasq-host
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/dnsmasq /system/bin
+BUSYBOX chmod -f 755 /system/bin/dnsmasq
+BUSYBOX chown -f 0.0 /system/bin/dnsmasq
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/dnsmasq.conf /system/etc
+BUSYBOX chmod -f 755 /system/etc/dnsmasq.conf
+BUSYBOX chown -f 0.0 /system/etc/dnsmasq.conf
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/resolv.conf /system/etc
+BUSYBOX chmod -f 755 /system/etc/resolv.conf
+BUSYBOX chown -f 0.0 /system/etc/resolv.conf
+
+BUSYBOX mv -f /system/etc/hosts /system/etc/hosts.RXGBAK
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/hosts /system/etc
+BUSYBOX chmod -f 755 /system/etc/hosts
+BUSYBOX chown -f 0.0 /system/etc/hosts
+
+BUSYBOX cp -f /system/etc/RXG/DNSMASQ/12RXG_DNSMASQ /system/etc/init.d
+BUSYBOX chmod -f 777 /system/etc/init.d/12RXG_DNSMASQ
+BUSYBOX chown -f 0.0 /system/etc/init.d/12RXG_DNSMASQ
+}
+
+remove() {
+if [ -e /system/bin/dnsmasq.RXGBAK ]; then
+BUSYBOX pkill /system/bin/dnsmasq 
+BUSYBOX mv /system/bin/dnsmasq.RXGBAK /system/bin/dnsmasq
+fi
+
+BUSYBOX rm -rf /data/dnsmasq.pid
+BUSYBOX rm -rf /system/xbin/rinetd
+BUSYBOX rm -rf /system/etc/rinetd.conf
+BUSYBOX rm -rf /data/local/dnsmasq-host
+BUSYBOX rm -rf /system/bin/dnsmasq
+BUSYBOX rm -rf /system/etc/dnsmasq.conf
+BUSYBOX rm  -rf /system/etc/resolv.conf
+
+cat >> /system/etc/resolv.conf <<EOF
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+EOF
+
+BUSYBOX chmod -f 644 /system/etc/resolv.conf
+BUSYBOX chown -f 0.0 /system/etc/resolv.conf
+BUSYBOX rm -rf /system/etc/hosts
+BUSYBOX mv /system/etc/hosts.RXGBAK /system/etc/hosts
+BUSYBOX rm -rf /system/etc/init.d/12RXG_DNSMASQ
+}
+
+case $1 in
+
+install)
+install
+;;
+
+remove)
+remove
+;;
+
+*)
+BUSYBOX echo "Usage: /system/etc/RXG/PROGRAMS/DNSMASQ [install|remove]"
+;;
+
+esac

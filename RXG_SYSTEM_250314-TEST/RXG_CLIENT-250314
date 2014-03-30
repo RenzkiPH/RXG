@@ -1,0 +1,425 @@
+#!/system/etc/RXG/busybox sh
+# RXG CLIENT 250314 // (c) 2014 RenzkiPH
+#
+# Special Thanks To
+# idcrisis/fivefour @ xda
+# zeppelinrox @ xda
+# pikachu01 @ xda
+# LENAROX @ xda
+
+exec 0>&1
+
+export PATH=/system/etc/RXG:$PATH:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:
+export LD_LIBRARY_PATH=/system/etc/RXG:$LD_LIBRARY_PATH
+
+set +e
+
+alias BUSYBOX='/system/etc/RXG/busybox'
+alias ECHO='BUSYBOX timeout -t 1 -s KILL /system/etc/RXG/busybox echo'
+alias FSTRIM='/system/etc/RXG/fstrim'
+alias [='BUSYBOX ['
+alias [[='BUSYBOX [['
+alias LS='BUSYBOX ls'
+
+if [[ "x$1" != "xAUTO" && "x$1" != "xEXEC" ]]; then 
+  if [ -f /system/etc/RXG/RXG.RUN ]; then return 0; fi
+  ( BUSYBOX start-stop-daemon -o -S -b -x /system/etc/RXG/RXG_CLIENT-250314 -- AUTO 0<&- &>/dev/null 2>&1 ) &
+  return 0;
+fi
+
+if [ "x$1" != "xEXEC" ]; then 
+  if [ -f /dev/RXG.RUN ]; then return 100; fi
+  lockdemo /dev/RXG.RUN >/dev/null 2>&1
+  ret=$?
+  if [ $ret -ne 0 ]; then return 99; fi
+  touch /dev/RXG.RUN
+fi
+
+for i in $(BUSYBOX mount | BUSYBOX grep relatime | BUSYBOX cut -d " " -f3); do
+   BUSYBOX sync;
+   BUSYBOX mount -o rw,remount,noatime,nodiratime $i;
+done;
+
+totalram=$((`free | awk '/Mem:/{print $2}'`/1024));
+heapsize=$(($totalram*16/100+$totalram*16/100%2));
+SSADJ=`getprop ro.SECONDARY_SERVER_ADJ`;
+
+if [ ! "$SSADJ" ]; then
+	SSADJ=5;
+fi;
+
+lmkmin="/sys/module/lowmemorykiller/parameters/minfree";
+lmkmin1=`BUSYBOX awk -F , '{print $1}' $lmkmin`;
+lmkmin2=`BUSYBOX awk -F , '{print $2}' $lmkmin`;
+lmkmin3=`BUSYBOX awk -F , '{print $3}' $lmkmin`;
+lmkmin4=`BUSYBOX awk -F , '{print $4}' $lmkmin`;
+lmkmin5=`BUSYBOX awk -F , '{print $5}' $lmkmin`;
+lmkmin6=`BUSYBOX awk -F , '{print $6}' $lmkmin`;
+MINSLOT1="2048,3072,6656,7168,7680,8192"
+MINSLOT2="2048,3584,14080,17920,21760,25600"
+MINSLOT3="2048,4096,35840,39680,40960,46080"
+MINSLOT4="2048,4096,46080,51200,57600,64000"
+MINSLOT5="2048,4096,57600,65536,73728,81920"
+
+if [ -f "/sys/module/lowmemorykiller/parameters/adj" ]; then
+	lmkadj="/sys/module/lowmemorykiller/parameters/adj";
+fi;
+
+if [ ! "$lmkadj" ]; then
+	oomadj1=0;
+	oomadj2=1;
+	oomadj3=2;
+	oomadj4=4;
+	oomadj5=9;
+	oomadj6=15;
+elif [ "`BUSYBOX awk -F , '{print $3}' $lmkadj`" -gt 15 ]; then
+	oomadj1=`BUSYBOX awk -F , '{printf "%.0f\n", $1*17/1000}' $lmkadj`;
+	oomadj2=`BUSYBOX awk -F , '{printf "%.0f\n", $2*17/1000}' $lmkadj`;
+	oomadj3=`BUSYBOX awk -F , '{printf "%.0f\n", $3*17/1000}' $lmkadj`;
+	oomadj4=`BUSYBOX awk -F , '{printf "%.0f\n", $4*17/1000}' $lmkadj`;
+	oomadj5=`BUSYBOX awk -F , '{printf "%.0f\n", $5*17/1000}' $lmkadj`;
+	oomadj6=15;
+else
+	oomadj1=`BUSYBOX awk -F , '{print $1}' $lmkadj`;
+	oomadj2=`BUSYBOX awk -F , '{print $2}' $lmkadj`;
+	oomadj3=`BUSYBOX awk -F , '{print $3}' $lmkadj`;
+	oomadj4=`BUSYBOX awk -F , '{print $4}' $lmkadj`;
+	oomadj5=`BUSYBOX awk -F , '{print $5}' $lmkadj`;
+	oomadj6=`BUSYBOX awk -F , '{print $6}' $lmkadj`;
+fi;
+
+if [ "$SSADJ" -le "$oomadj1" ]; then
+	SSMF=$lmkmin1;slot=1;
+elif [ "$SSADJ" -le "$oomadj2" ]; then
+	SSMF=$lmkmin2;slot=2;
+elif [ "$SSADJ" -le "$oomadj3" ]; then
+	SSMF=$lmkmin3;slot=3;
+elif [ "$SSADJ" -le "$oomadj4" ]; then
+	SSMF=$lmkmin4;slot=4;
+elif [ "$SSADJ" -le "$oomadj5" ]; then
+	SSMF=$lmkmin5;slot=5;
+elif [ "$SSADJ" -le "$oomadj6" ]; then
+	SSMF=$lmkmin6;slot=6;
+fi;
+
+MFK=$(($SSMF*4/5));
+
+if [ "$totalram" -lt 256 ]; then
+   ECHO $MINSLOT1 >> $lmkmin
+elif [ "$totalram" -lt 512 ]; then
+     ECHO $MINSLOT2 >> $lmkmin
+elif [ "$totalram" -lt 768 ]; then
+     ECHO $MINSLOT3 >> $lmkmin
+elif [ "$totalram" -lt 1024 ]; then
+     ECHO $MINSLOT4 >> $lmkmin
+else
+     ECHO $MINSLOT5 >> $lmkmin
+fi;
+
+ECHO 30 >> /proc/sys/vm/swappiness
+ECHO 20 >> /proc/sys/vm/vfs_cache_pressure
+ECHO 250 >> /proc/sys/vm/dirty_expire_centisecs
+ECHO 500 >> /proc/sys/vm/dirty_writeback_centisecs
+ECHO 85 >> /proc/sys/vm/dirty_ratio
+ECHO 10 >> /proc/sys/vm/dirty_background_ratio
+ECHO 3 >> /proc/sys/vm/page-cluster
+ECHO $MFK >> /proc/sys/vm/min_free_kbytes
+ECHO 4 >> /proc/sys/vm/min_free_order_shift
+ECHO 0 >> /proc/sys/vm/oom_kill_allocating_task
+ECHO 3 >> /proc/sys/vm/drop_caches
+ECHO 1 >> /proc/sys/vm/overcommit_memory 
+ECHO 1 >> /proc/sys/vm/oom_dump_tasks
+ECHO 0 >> /proc/sys/vm/laptop_mode
+ECHO 0 >> /proc/sys/vm/block_dump
+ECHO 0 >> /proc/sys/vm/panic_on_oom
+ECHO 0 > /proc/sys/kernel/panic
+ECHO 0 > /proc/sys/kernel/panic_on_oops
+ECHO 0 > /proc/sys/kernel/hung_task_timeout_secs
+ECHO 0 > /proc/sys/kernel/softlockup_panic
+
+setprop dalvik.vm.heapgrowthlimit $heapsize""m
+setprop dalvik.vm.heapsize $heapsize""m
+setprop persist.sys.vm.heapsize $heapsize""m
+setprop persist.sys.purgeable_assets 1
+
+# Optimize non-rotating storage; 
+for i in `LS /sys/block/*/queue`; do
+	#IMPORTANT!
+	if [ -e $i/rotational ]; 
+	then
+		ECHO 0 >> $i/rotational; 
+	fi;
+	if [ -e $i/nr_requests ];
+	then
+   ECHO 1024 >> $i/nr_requests; # for starters: keep it sane
+	fi;
+	#CFQ specific
+	if [ -e $i/iosched/back_seek_penalty ];
+	then 
+		ECHO 1 >> $i/iosched/back_seek_penalty;
+	fi;
+	if [ -e $i/iosched/low_latency ];
+	then
+		ECHO 1 >> $i/iosched/low_latency;
+	fi;
+	if [ -e $i/iosched/slice_idle ];
+	then 
+		ECHO 1 >> $i/iosched/slice_idle; # previous: 1
+	fi;
+	# deadline/VR/SIO scheduler specific
+	if [ -e $i/iosched/fifo_batch ];
+	then
+		ECHO 4 >> $i/iosched/fifo_batch;
+	fi;
+	if [ -e $i/iosched/writes_starved ];
+	then
+		ECHO 4 >> $i/iosched/writes_starved;
+	fi;
+	#CFQ specific
+	if [ -e $i/iosched/quantum ];
+	then
+		ECHO 8 >> $i/iosched/quantum;
+	fi;
+	#VR Specific
+	if [ -e $i/iosched/rev_penalty ];
+	then
+		ECHO 1 >> $i/iosched/rev_penalty;
+	fi;
+	#ROW specific
+	if [ -e $i/iosched/hp_read_quantum ];
+	then
+	ECHO 20 >> $i/iosched/hp_read_quantum;   
+	fi;
+	if [ -e $i/iosched/rp_read_quantum ];
+	then
+	ECHO 20 >> $i/iosched/rp_read_quantum;   
+	fi;
+	if [ -e $i/iosched/hp_swrite_quantum ];
+	then
+	ECHO 5 >> $i/iosched/hp_swrite_quantum;   
+	fi;
+	if [ -e $i/iosched/rp_write_quantum ];
+	then
+	ECHO 4 >> $i/iosched/rp_write_quantum;   
+	fi;
+	if [ -e $i/iosched/rp_swrite_quantum ];
+	then
+	ECHO 4 >> $i/iosched/rp_swrite_quantum;   
+	fi;
+	if [ -e $i/iosched/lp_read_quantum ];
+	then
+	ECHO 2 >> $i/iosched/lp_read_quantum;   
+	fi;
+	if [ -e $i/iosched/lp_swrite_quantum ];
+	then
+	ECHO 2 >> $i/iosched/lp_swrite_quantum;   
+	fi;
+	if [ -e $i/iosched/read_idle ];
+	then
+	ECHO 5 >> $i/iosched/read_idle;   
+	fi;
+	if [ -e $i/iosched/read_idle_freq ];
+	then
+	ECHO 15 >> $i/iosched/read_idle_freq;   
+	fi;
+#disable iostats to reduce overhead  # idea by kodos96 - thanks !
+	if [ -e $i/iostats ];
+	then
+		ECHO 0 >> $i/iostats;
+	fi;
+	if [ -e $i/rq_affinity ];
+	then
+	ECHO 1 >> $i/rq_affinity;   
+	fi;
+# Optimize for read- & write-throughput; 
+# Optimize for readahead; 
+	if [ -e $i/read_ahead_kb ];
+	then
+		ECHO 512 >> $i/read_ahead_kb;
+	fi;
+done;
+
+FSTRIM -v /cache
+FSTRIM -v /data
+
+setprop persist.sys.NV_FPSLIMIT 60;
+setprop persist.sys.NV_POWERMODE 1;
+setprop persist.sys.NV_PROFVER 15;
+setprop persist.sys.NV_STEREOCTRL 0;
+setprop persist.sys.NV_STEREOSEPCHG 0;
+setprop persist.sys.NV_STEREOSEP 20;
+setprop debug.sf.showupdates 0;
+setprop debug.sf.showcpu 0;
+setprop debug.sf.showbackground 0;
+setprop debug.sf.showfps 0;
+setprop debug.egl.hw 1;
+setprop debug.sf.hw 1;
+setprop debug.composition.type gpu;
+setprop debug.performance.tuning 1;
+setprop ro.config.disable.hw_accel 0;
+setprop ro.sf.compbypass.enable 0;
+setprop video.accelerate.hw 1;
+setprop persist.android.strictmode 0;
+setprop ro.min_pointer_dur 1;
+setprop ro.secure 0;
+setprop hw3d.force 1;
+setprop hw2d.force 1;
+setprop debug.egl.profiler 1;
+setprop debug.enabletr true;
+setprop debug.gr.numframebuffers 3;
+setprop persist.service.lgospd.enable 0;
+setprop persist.service.pcsync.enable 0;
+setprop windowsmgr.max_events_per_sec 90;
+setprop ro.max.fling_velocity 16000;
+setprop ro.min.fling_velocity 12000;
+setprop touch.presure.scale 0.001;
+
+ST=/sys/class/touch/switch/set_touchscreen 
+if [ -e $ST ]; then
+   busybox echo "7035" > $ST
+   busybox echo "8002" > $ST
+   busybox echo "11000" > $ST
+   busybox echo "13060" > $ST
+   busybox echo "14005" > $ST
+fi 2>/dev/null
+
+BUSYBOX sysctl -e -w net.core.wmem_max=1048576;
+BUSYBOX sysctl -e -w net.core.rmem_max=1048576;
+BUSYBOX sysctl -e -w net.core.optmem_max=20480;
+BUSYBOX sysctl -e -w net.unix.max_dgram_qlen=50;
+BUSYBOX sysctl -e -w net.ipv4.tcp_moderate_rcvbuf=1;
+BUSYBOX sysctl -e -w net.ipv4.route.flush=1;
+BUSYBOX sysctl -e -w net.ipv4.udp_rmem_min=6144;
+BUSYBOX sysctl -e -w net.ipv4.udp_wmem_min=6144;
+BUSYBOX sysctl -e -w net.ipv4.tcp_rfc1337=1;
+BUSYBOX sysctl -e -w net.ipv4.ip_no_pmtu_disc=0;
+BUSYBOX sysctl -e -w net.ipv4.tcp_ecn=0;
+BUSYBOX sysctl -e -w net.ipv4.tcp_rmem='6144 87380 1048576';
+BUSYBOX sysctl -e -w net.ipv4.tcp_wmem='6144 87380 1048576';
+BUSYBOX sysctl -e -w net.ipv4.tcp_timestamps=0;
+BUSYBOX sysctl -e -w net.ipv4.tcp_sack=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_fack=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_window_scaling=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_tw_recycle=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_tw_reuse=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_congestion_control=cubic;
+BUSYBOX sysctl -e -w net.ipv4.tcp_frto=2;
+BUSYBOX sysctl -e -w net.ipv4.tcp_frto_response=2;
+BUSYBOX sysctl -e -w net.ipv4.tcp_low_latency=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_mtu_probing=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_workaround_signed_windows=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_dsack=1;
+BUSYBOX sysctl -e -w net.ipv4.ip_dynaddr=0;
+BUSYBOX sysctl -e -w net.ipv4.tcp_mem='57344 57344 524288';
+BUSYBOX sysctl -e -w net.ipv6.conf.all.use_tempaddr=2
+BUSYBOX sysctl -e -w net.ipv6.conf.default.use_tempaddr=2
+BUSYBOX sysctl -e -w net.ipv6.conf.all.temp_prefered_lft=3600
+BUSYBOX sysctl -e -w net.ipv6.conf.default.temp_prefered_lft=3600
+BUSYBOX sysctl -e -w net.ipv4.tcp_syncookies=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_synack_retries=2;
+BUSYBOX sysctl -e -w net.ipv4.tcp_syn_retries=2;
+BUSYBOX sysctl -e -w net.ipv4.tcp_max_syn_backlog=1024;
+BUSYBOX sysctl -e -w net.ipv4.tcp_max_tw_buckets=16384;
+BUSYBOX sysctl -e -w net.ipv4.icmp_echo_ignore_all=1;
+BUSYBOX sysctl -e -w net.ipv4.icmp_echo_ignore_broadcasts=1;
+BUSYBOX sysctl -e -w net.ipv4.icmp_ignore_bogus_error_responses=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_no_metrics_save=1;
+BUSYBOX sysctl -e -w net.ipv4.tcp_fin_timeout=15;
+BUSYBOX sysctl -e -w net.ipv4.tcp_keepalive_intvl=30;
+BUSYBOX sysctl -e -w net.ipv4.tcp_keepalive_probes=5;
+BUSYBOX sysctl -e -w net.ipv4.tcp_keepalive_time=1800;
+BUSYBOX sysctl -e -w net.ipv4.ip_forward=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.all.send_redirects=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.default.send_redirects=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.all.rp_filter=1;
+BUSYBOX sysctl -e -w net.ipv4.conf.default.rp_filter=1;
+BUSYBOX sysctl -e -w net.ipv4.conf.all.accept_source_route=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.default.accept_source_route=0 ;
+BUSYBOX sysctl -e -w net.ipv4.conf.all.accept_redirects=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.default.accept_redirects=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.all.secure_redirects=0;
+BUSYBOX sysctl -e -w net.ipv4.conf.default.secure_redirects=0;
+
+setprop ro.ril.hep 1
+setprop ro.ril.hsxpa 3
+setprop ro.ril.gprsclass 16
+setprop net.tcp.buffersize.default 6144,87380,110208,6144,16384,110208
+setprop net.tcp.buffersize.wifi 262144,524288,1048576,262144,524288,1048576
+setprop net.tcp.buffersize.lte 262144,524288,3145728,262144,524288,3145728
+setprop net.tcp.buffersize.hsdpa 6144,262144,1048576,6144,262144,1048576
+setprop net.tcp.buffersize.evdo_b 6144,262144,1048576,6144,262144,1048576
+setprop net.tcp.buffersize.umts 6144,87380,110208,6144,16384,110208
+setprop net.tcp.buffersize.hspa 6144,87380,262144,6144,16384,262144
+setprop net.tcp.buffersize.gprs 6144,8760,11680,6144,8760,11680
+setprop net.tcp.buffersize.edge 6144,26280,35040,6144,16384,35040
+
+if [ "`pgrep media`" ] && [ "`pgrep mediaserver`" ]; then
+BUSYBOX killall -9 android.process.media
+BUSYBOX killall -9 mediaserver
+fi
+
+for pid in `BUSYBOX ps | BUSYBOX awk '{ if ( $2 ~ /^root$/ && $4 !~ /netd$|rild$|zygote$|kswapd|vold|loop/ ) print $1 }'`; do
+  BUSYBOX ionice -c 2 -n 3 -p $pid 2>/dev/null
+done
+
+for pid in $(BUSYBOX pgrep pdflush 2>/dev/null); do
+  BUSYBOX renice 7 $pid 2>/dev/null
+  BUSYBOX ionice -c 3 -n 7 -p $pid 2>/dev/null
+done
+
+for pid in $(BUSYBOX pgrep flush- 2>/dev/null); do
+  BUSYBOX renice 7 $pid 2>/dev/null
+  BUSYBOX ionice -c 3 -n 7 -p $pid 2>/dev/null
+done
+
+for pid in `BUSYBOX ps | BUSYBOX awk '{ if ( $2 ~ /^app_/) print $1 }'`; do
+  BUSYBOX renice -1 $pid 2>/dev/null
+  BUSYBOX ionice -c 1 -n 0 -p $pid 2>/dev/null
+done
+
+pid=$(BUSYBOX pgrep zygote 2>/dev/null)
+BUSYBOX renice -1 $pid 2>/dev/null
+BUSYBOX ionice -c 1 -n 0 -p $pid 2>/dev/null
+
+for pid in `dumpsys activity services | BUSYBOX grep -i app=ProcessRecord | BUSYBOX awk '{ print $2 }' | BUSYBOX grep -v '/100[0-9]}' | BUSYBOX cut -d: -f1`; do
+  BUSYBOX renice 7 $pid 2>/dev/null
+  BUSYBOX ionice -c 2 -n 7 -p $pid 2>/dev/null
+done
+
+if [ "`LS /sys/devices/virtual/bdi/179*/read_ahead_kb`" ]; then
+	for i in `LS /sys/devices/virtual/bdi/179*/read_ahead_kb`; do
+		ECHO 2048 >> $i;
+	done;
+fi;
+
+BUSYBOX sysctl -w kernel.random.write_wakeup_threshold=128;
+BUSYBOX sysctl -w kernel.random.read_wakeup_threshold=1376;
+
+if [ -e /sys/kernel/mm/ksm ]; then
+ECHO 1 >> /sys/kernel/mm/ksm/run;
+ECHO 12800 >> /sys/kernel/mm/ksm/pages_to_scan;
+ECHO 15000 >> /sys/kernel/mm/ksm/sleep_millisecs;
+fi
+
+if [ -e "/sys/kernel/debug/sched_features" ]; then
+	BUSYBOX mount -t debugfs none /sys/kernel/debug;
+	ECHO NO_AFFINE_WAKEUPS >> /sys/kernel/debug/sched_features;
+	ECHO NO_ARCH_POWER >> /sys/kernel/debug/sched_features;
+	ECHO NO_CACHE_HOT_BUDDY >> /sys/kernel/debug/sched_features;
+	ECHO NO_DOUBLE_TICK >> /sys/kernel/debug/sched_features;
+	ECHO NO_FORCE_SD_OVERLAP >> /sys/kernel/debug/sched_features;
+	ECHO NO_GENTLE_FAIR_SLEEPERS >> /sys/kernel/debug/sched_features;
+	ECHO NO_HRTICK >> /sys/kernel/debug/sched_features;
+	ECHO NO_LAST_BUDDY >> /sys/kernel/debug/sched_features;
+	ECHO NO_LB_BIAS >> /sys/kernel/debug/sched_features;
+	ECHO NO_LB_MIN >> /sys/kernel/debug/sched_features;
+	ECHO NO_NEW_FAIR_SLEEPERS >> /sys/kernel/debug/sched_features;
+	ECHO NO_NEXT_BUDDY >> /sys/kernel/debug/sched_features;
+	ECHO NO_NONTASK_POWER >> /sys/kernel/debug/sched_features;
+	ECHO NO_NORMALIZED_SLEEPERS >> /sys/kernel/debug/sched_features;
+	ECHO NO_OWNER_SPIN >> /sys/kernel/debug/sched_features;
+	ECHO NO_RT_RUNTIME_SHARE >> /sys/kernel/debug/sched_features;
+	ECHO NO_START_DEBIT >> /sys/kernel/debug/sched_features;
+	ECHO NO_TTWU_QUEUE >> /sys/kernel/debug/sched_features;
+	BUSYBOX umount /sys/kernel/debug;
+fi;
