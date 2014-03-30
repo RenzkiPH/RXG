@@ -18,6 +18,7 @@ Installation:
 6. Type "chmod 755 /data/RXG/rxgd" // ENTER
 
 7. Type "/data/RXG/rxgd -i" // ENTER
+
 Note: This Will Install RXG By Typing "/data/RXG/rxgd -i"
 
 8. Type "remount_rxg" // ENTER
@@ -43,8 +44,11 @@ To Manage RXG
 Type "/etc/RXG/rxgx" // ENTER
 
 Changelog:
+
 Build 250314 Test
+
 -Initial Release
+
 -Test Build
 
 RXG Is Licensed Under GPLv3. See LICENSE For More Details.
