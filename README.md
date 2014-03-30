@@ -4,6 +4,7 @@ RXG Performance Manager
 The Ultimate Performance Manager For Android
 
 Installation:
+
 1. Download Any Version You Want From GitHub RXG Releases
 
 2. Move It To /data Then Extract It To /data
